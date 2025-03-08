@@ -1,5 +1,5 @@
+// ─── UIタブ設定 (UI Tab Settings) ───
 (function() {
-  // ─── UIタブ設定 (UI Tab Settings) ───
   // 各タブごとにテキストやフォントサイズを個別に調整
 
   // Chat Tab (チャットタブ)
@@ -46,55 +46,144 @@
     settingsButton.style.fontSize = '0.6rem';
   }
 
-  // ─── チャット削除ボタンテキストの調整 ───
-  // 既に監視対象に追加済みの削除ボタンを管理するセット
+})();
+
+// ─── チャット削除ボタンテキストの調整 ───
+(function() {
   const observedButtons = new Set();
 
   // 対象の削除ボタン内にある <span> のテキストを即座に修正（「よろしいですか？」→「削除」）
-  const adjustDeletionText = (button) => {
+  function adjustDeletionText(button) {
     const span = button.querySelector('span');
-    if (span && span.textContent === 'よろしいですか？') {
+    if (span && span.textContent.trim() === 'よろしいですか？') {
       span.textContent = '削除';
       span.style.whiteSpace = 'nowrap';
       span.style.textDecoration = 'none';
     }
-  };
+  }
 
-  // 指定した削除ボタンに対してMutationObserverを設定し、内部の変化を監視する
-  const observeDeleteButton = (button) => {
+  // 削除ボタン（およびその子孫）の変化があれば、テキストを修正するMutationObserverを設定
+  function observeDeleteButton(button) {
     const observer = new MutationObserver((mutations) => {
-      mutations.forEach(mutation => {
-        mutation.addedNodes.forEach(node => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
+            // 直接追加されたnodeが<span>の場合、または子孫に<span>が存在する場合
             const span = node.matches('span') ? node : node.querySelector('span');
-            if (span && span.textContent === 'よろしいですか？') {
+            if (span && span.textContent.trim() === 'よろしいですか？') {
               span.textContent = '削除';
               span.style.whiteSpace = 'nowrap';
               span.style.textDecoration = 'none';
             }
           }
         });
-        // 子要素の変更後に全体を再チェックする
+        // 変更後に全体の状態を再チェック
         adjustDeletionText(button);
       });
     });
-    observer.observe(button, { childList: true, subtree: true });
-  };
 
-  // 動的に追加される削除ボタンを定期的にチェックして、必要に応じて監視を開始する
-  const checkDeleteButtons = () => {
-    const deleteButtons = document.querySelectorAll('[aria-label="チャットを削除"]');
-    deleteButtons.forEach(button => {
+    observer.observe(button, { childList: true, subtree: true });
+  }
+
+  // 追加されたノードをチェックし、削除ボタンがあれば監視を開始する
+  function processAddedNode(node) {
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+    // 追加されたノードがすでに削除ボタンの場合
+    if (node.matches('[aria-label="チャットを削除"]')) {
+      if (!observedButtons.has(node)) {
+        observedButtons.add(node);
+        observeDeleteButton(node);
+        adjustDeletionText(node);
+      }
+    }
+
+    // 追加されたノードの子孫に削除ボタンが含まれている場合
+    const deleteButtons = node.querySelectorAll('[aria-label="チャットを削除"]');
+    deleteButtons.forEach((button) => {
       if (!observedButtons.has(button)) {
         observedButtons.add(button);
         observeDeleteButton(button);
-        // すでに表示されているボタンの即時修正
         adjustDeletionText(button);
       }
     });
-  };
+  }
 
-  // 500msごとに削除ボタンのチェックを行う（環境に合わせて間隔調整可能）
-  setInterval(checkDeleteButtons, 500);
+  // body全体に対してMutationObserverを設定し、削除ボタンの追加を監視する
+  const bodyObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        processAddedNode(node);
+      });
+    });
+  });
+
+  bodyObserver.observe(document.body, { childList: true, subtree: true });
+
+  // 初期状態で既に存在している削除ボタンも監視対象に追加
+  document.querySelectorAll('[aria-label="チャットを削除"]').forEach((button) => {
+    if (!observedButtons.has(button)) {
+      observedButtons.add(button);
+      observeDeleteButton(button);
+      adjustDeletionText(button);
+    }
+  });
+})();
+
+// ─── エージェント画面のタイトル調整 ───
+(function() {
+  let headerObserver; // ヘッダー専用のObserverを保持
+
+  // ヘッダー内のh2要素を更新する関数
+  function updateHeaderText(container) {
+    const header = container.querySelector('h2');
+    if (header && header.textContent.trim() === '代理') {
+      header.textContent = 'エージェント';
+      console.log("ヘッダーのテキストを'代理'から'エージェント'に変更しました。");
+    }
+  }
+
+  // ヘッダーコンテナに対してMutationObserverを設定し、変化があればテキスト更新を実行
+  function observeHeaderContainer(container) {
+    updateHeaderText(container);
+
+    // 既存のObserverがあれば切断
+    if (headerObserver) headerObserver.disconnect();
+
+    headerObserver = new MutationObserver(() => {
+      updateHeaderText(container);
+    });
+
+    headerObserver.observe(container, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+  }
+
+  // ヘッダーコンテナが存在するか初期チェックを実施
+  function initHeaderObserver() {
+    const container = document.querySelector('[data-element-id="character-list-header"]');
+    if (container) {
+      observeHeaderContainer(container);
+    }
+  }
+
+  // 初期化：ページロード時にヘッダーの存在をチェック
+  initHeaderObserver();
+
+  // SPA等で動的に要素が追加されるケースに対応するため、
+  // document.body全体に対して監視を開始し、ヘッダーコンテナが新たに追加された場合に再設定する
+  const bodyObserver = new MutationObserver(() => {
+    const container = document.querySelector('[data-element-id="character-list-header"]');
+    if (container) {
+      observeHeaderContainer(container);
+    }
+  });
+
+  bodyObserver.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
 })();
 
