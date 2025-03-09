@@ -132,24 +132,20 @@
 
 // ─── エージェント画面のタイトル調整 ───
 (function() {
-  let headerObserver; // ヘッダー専用のObserverを保持
+  // ----- デスクトップヘッダー (data-element-id="character-list-header" 内) -----
+  let headerObserver;
 
-  // ヘッダー内のh2要素を更新する関数
   function updateHeaderText(container) {
     const header = container.querySelector('h2');
     if (header && header.textContent.trim() === '代理') {
       header.textContent = 'エージェント';
-      console.log("ヘッダーのテキストを'代理'から'エージェント'に変更しました。");
     }
   }
 
-  // ヘッダーコンテナに対してMutationObserverを設定し、変化があればテキスト更新を実行
   function observeHeaderContainer(container) {
     updateHeaderText(container);
 
-    // 既存のObserverがあれば切断
     if (headerObserver) headerObserver.disconnect();
-
     headerObserver = new MutationObserver(() => {
       updateHeaderText(container);
     });
@@ -161,7 +157,6 @@
     });
   }
 
-  // ヘッダーコンテナが存在するか初期チェックを実施
   function initHeaderObserver() {
     const container = document.querySelector('[data-element-id="character-list-header"]');
     if (container) {
@@ -169,19 +164,64 @@
     }
   }
 
-  // 初期化：ページロード時にヘッダーの存在をチェック
   initHeaderObserver();
 
-  // SPA等で動的に要素が追加されるケースに対応するため、
-  // document.body全体に対して監視を開始し、ヘッダーコンテナが新たに追加された場合に再設定する
-  const bodyObserver = new MutationObserver(() => {
+  // ページ全体の変化に対応（SPA対応）
+  const bodyObserverDesktop = new MutationObserver(() => {
     const container = document.querySelector('[data-element-id="character-list-header"]');
     if (container) {
       observeHeaderContainer(container);
     }
   });
 
-  bodyObserver.observe(document.body, {
+  bodyObserverDesktop.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+
+  // ----- モバイルヘッダー (クラス指定のコンテナ内) -----
+  let mobileHeaderObserver;
+
+  function updateMobileHeaderText(container) {
+    const header = container.querySelector('h2');
+    if (header && header.textContent.trim() === '代理') {
+      header.textContent = 'エージェント';
+    }
+  }
+
+  function observeMobileHeaderContainer(container) {
+    updateMobileHeaderText(container);
+
+    if (mobileHeaderObserver) mobileHeaderObserver.disconnect();
+    mobileHeaderObserver = new MutationObserver(() => {
+      updateMobileHeaderText(container);
+    });
+
+    mobileHeaderObserver.observe(container, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+  }
+
+  function initMobileHeaderObserver() {
+    // モバイルヘッダーのコンテナはクラス名で指定 (コロン(:)はエスケープが必要)
+    const container = document.querySelector('div.block.md\\:hidden.px-6.pt-4.space-y-1');
+    if (container) {
+      observeMobileHeaderContainer(container);
+    }
+  }
+
+  initMobileHeaderObserver();
+
+  const bodyObserverMobile = new MutationObserver(() => {
+    const container = document.querySelector('div.block.md\\:hidden.px-6.pt-4.space-y-1');
+    if (container) {
+      observeMobileHeaderContainer(container);
+    }
+  });
+
+  bodyObserverMobile.observe(document.body, {
     childList: true,
     subtree: true
   });
