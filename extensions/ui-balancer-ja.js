@@ -12,20 +12,20 @@
   const agentsButton = document.querySelector('[data-element-id="workspace-tab-agents"] .font-normal');
   if (agentsButton) {
     agentsButton.textContent = 'エージェント';
-    agentsButton.style.fontSize = '0.5rem';
+    agentsButton.style.fontSize = '0.55rem';
   }
 
   // Prompts Tab (プロンプトタブ)
   const promptButton = document.querySelector('[data-element-id="workspace-tab-prompts"] .font-normal');
   if (promptButton) {
     promptButton.textContent = 'プロンプト';
-    promptButton.style.fontSize = '0.5rem';
+    promptButton.style.fontSize = '0.6rem';
   }
 
   // Plugins Tab (プラグインタブ)
   const pluginsButton = document.querySelector('[data-element-id="workspace-tab-plugins"] .font-normal');
   if (pluginsButton) {
-    pluginsButton.style.fontSize = '0.5rem';
+    pluginsButton.style.fontSize = '0.6rem';
   }
 
   // Models Tab (モデルタブ)
