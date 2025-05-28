@@ -229,16 +229,37 @@
 
 // ─── ボタンテキスト変更 (Button Text Changes) ───
 (function() {
-  // KB検索ボタン -> Search KB
-  const kbButton = document.querySelector('[data-element-id="toggle-kb-button"] .text-xs.font-medium.sm\\:inline-block.hidden');
-  if (kbButton) {
-    kbButton.textContent = 'Search KB';
+  function updateButtonTexts() {
+    // KB検索ボタン -> Search KB
+    const kbButton = document.querySelector('[data-element-id="toggle-kb-button"] .text-xs.font-medium.sm\\:inline-block.hidden');
+    if (kbButton) {
+      kbButton.textContent = 'Search KB';
+    }
+
+    // 考えてみようボタン -> Think
+    const thinkingButton = document.querySelector('[data-element-id="toggle-thinking-button"] .text-xs.font-medium.sm\\:inline-block.hidden');
+    if (thinkingButton) {
+      thinkingButton.textContent = 'Think';
+    }
   }
 
-  // 考えてみようボタン -> Think
-  const thinkingButton = document.querySelector('[data-element-id="toggle-thinking-button"] .text-xs.font-medium.sm\\:inline-block.hidden');
-  if (thinkingButton) {
-    thinkingButton.textContent = 'Think';
-  }
+  // 初回実行
+  updateButtonTexts();
+
+  // MutationObserverでDOM変更を監視
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      // 子要素の追加・削除を検知
+      if (mutation.type === 'childList') {
+        updateButtonTexts();
+      }
+    });
+  });
+
+  // document全体を監視対象に設定
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
 })();
 
