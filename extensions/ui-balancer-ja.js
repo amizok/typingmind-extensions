@@ -227,3 +227,18 @@
   });
 })();
 
+// ─── ボタンテキスト変更 (Button Text Changes) ───
+(function() {
+  // KB検索ボタン -> Search KB
+  const kbButton = document.querySelector('[data-element-id="toggle-kb-button"] .text-xs.font-medium.sm\\:inline-block.hidden');
+  if (kbButton) {
+    kbButton.textContent = 'Search KB';
+  }
+
+  // 考えてみようボタン -> Think
+  const thinkingButton = document.querySelector('[data-element-id="toggle-thinking-button"] .text-xs.font-medium.sm\\:inline-block.hidden');
+  if (thinkingButton) {
+    thinkingButton.textContent = 'Think';
+  }
+})();
+
