@@ -229,53 +229,97 @@
 
 // ─── ボタンテキスト変更 (Button Text Changes) ───
 (function() {
-  function updateButtonTexts() {
-    // KB検索ボタン -> Search KB
-    const kbButton = document.querySelector('[data-element-id="toggle-kb-button"] span.text-xs');
-    if (kbButton && kbButton.textContent.trim() === 'KB検索') {
-      kbButton.textContent = 'Search KB';
-    }
+  const observedButtons = new Set();
 
-    // 考えてみようボタン -> Think
-    const thinkingButton = document.querySelector('[data-element-id="toggle-thinking-button"] span.text-xs');
-    if (thinkingButton && thinkingButton.textContent.trim() === '考えてみよう') {
-      thinkingButton.textContent = 'Think';
-    }
+  // ボタン内のspan要素のテキストを変更
+  function adjustButtonText(button) {
+    const spans = button.querySelectorAll('span.text-xs.font-medium');
+    spans.forEach(span => {
+      if (span.textContent.trim() === 'KB検索') {
+        span.textContent = 'Search KB';
+      } else if (span.textContent.trim() === '考えてみよう') {
+        span.textContent = 'Think';
+      }
+    });
+  }
+
+  // 各ボタンの変更を監視するMutationObserverを設定
+  function observeButton(button) {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const span = node.matches('span.text-xs.font-medium') ? node : node.querySelector('span.text-xs.font-medium');
+            if (span) {
+              if (span.textContent.trim() === 'KB検索') {
+                span.textContent = 'Search KB';
+              } else if (span.textContent.trim() === '考えてみよう') {
+                span.textContent = 'Think';
+              }
+            }
+          }
+        });
+        adjustButtonText(button);
+      });
+    });
+
+    observer.observe(button, { childList: true, subtree: true });
+  }
+
+  // ボタンが存在するかチェックして監視を開始
+  function initButtonObservers() {
+    const buttons = document.querySelectorAll('[data-element-id="toggle-kb-button"], [data-element-id="toggle-thinking-button"]');
+    buttons.forEach((button) => {
+      if (!observedButtons.has(button)) {
+        observedButtons.add(button);
+        observeButton(button);
+        adjustButtonText(button);
+      }
+    });
   }
 
   // 初回実行
-  updateButtonTexts();
+  initButtonObservers();
 
-  // 各ボタンの変更を監視
-  function observeButton(buttonId) {
-    const button = document.querySelector(`[data-element-id="${buttonId}"]`);
-    if (button) {
-      const observer = new MutationObserver(() => {
-        updateButtonTexts();
+  // chat-input-actionsコンテナを監視
+  function observeChatInputActions() {
+    const container = document.querySelector('[data-element-id="chat-input-actions"]');
+    if (container) {
+      const containerObserver = new MutationObserver((mutations) => {
+        let shouldReinit = false;
+        mutations.forEach((mutation) => {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              // 対象ボタンが追加された場合のみ再初期化
+              if (node.matches('[data-element-id="toggle-kb-button"], [data-element-id="toggle-thinking-button"]') ||
+                  node.querySelector('[data-element-id="toggle-kb-button"], [data-element-id="toggle-thinking-button"]')) {
+                shouldReinit = true;
+              }
+            }
+          });
+        });
+
+        if (shouldReinit) {
+          initButtonObservers();
+        }
       });
 
-      observer.observe(button, {
-        childList: true,
-        subtree: true,
-        characterData: true
-      });
+      containerObserver.observe(container, { childList: true, subtree: true });
     }
   }
 
-  // 各ボタンを監視対象に設定
-  observeButton('toggle-kb-button');
-  observeButton('toggle-thinking-button');
+  // コンテナの監視を開始
+  observeChatInputActions();
 
-  // SPA対応: 全体の変化を監視してボタンが新しく追加された場合に対応
+  // SPA対応: コンテナ自体が動的に追加される場合に備えて
   const bodyObserver = new MutationObserver(() => {
-    observeButton('toggle-kb-button');
-    observeButton('toggle-thinking-button');
-    updateButtonTexts();
+    const container = document.querySelector('[data-element-id="chat-input-actions"]');
+    if (container) {
+      observeChatInputActions();
+      initButtonObservers();
+    }
   });
 
-  bodyObserver.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
+  bodyObserver.observe(document.body, { childList: true, subtree: true });
 })();
 
