@@ -130,6 +130,88 @@
   });
 })();
 
+// ─── プロジェクト/フォルダ削除ボタンテキストの調整 ───
+(function() {
+  const observedButtons = new Set();
+
+  // 対象の削除ボタン内にある <span> のテキストを即座に修正（「よろしいですか？」→「削除」）
+  function adjustDeletionText(button) {
+    const span = button.querySelector('span');
+    if (span && span.textContent.trim() === 'よろしいですか？') {
+      span.textContent = '削除';
+      span.style.whiteSpace = 'nowrap';
+      span.style.textDecoration = 'none';
+    }
+  }
+
+  // 削除ボタン（およびその子孫）の変化があれば、テキストを修正するMutationObserverを設定
+  function observeDeleteButton(button) {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            // 直接追加されたnodeが<span>の場合、または子孫に<span>が存在する場合
+            const span = node.matches('span') ? node : node.querySelector('span');
+            if (span && span.textContent.trim() === 'よろしいですか？') {
+              span.textContent = '削除';
+              span.style.whiteSpace = 'nowrap';
+              span.style.textDecoration = 'none';
+            }
+          }
+        });
+        // 変更後に全体の状態を再チェック
+        adjustDeletionText(button);
+      });
+    });
+
+    observer.observe(button, { childList: true, subtree: true });
+  }
+
+  // 追加されたノードをチェックし、削除ボタンがあれば監視を開始する
+  function processAddedNode(node) {
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+    // 追加されたノードがすでに削除ボタンの場合
+    if (node.matches('[aria-label="プロジェクト/フォルダを削除"]')) {
+      if (!observedButtons.has(node)) {
+        observedButtons.add(node);
+        observeDeleteButton(node);
+        adjustDeletionText(node);
+      }
+    }
+
+    // 追加されたノードの子孫に削除ボタンが含まれている場合
+    const deleteButtons = node.querySelectorAll('[aria-label="プロジェクト/フォルダを削除"]');
+    deleteButtons.forEach((button) => {
+      if (!observedButtons.has(button)) {
+        observedButtons.add(button);
+        observeDeleteButton(button);
+        adjustDeletionText(button);
+      }
+    });
+  }
+
+  // body全体に対してMutationObserverを設定し、削除ボタンの追加を監視する
+  const bodyObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        processAddedNode(node);
+      });
+    });
+  });
+
+  bodyObserver.observe(document.body, { childList: true, subtree: true });
+
+  // 初期状態で既に存在している削除ボタンも監視対象に追加
+  document.querySelectorAll('[aria-label="プロジェクト/フォルダを削除"]').forEach((button) => {
+    if (!observedButtons.has(button)) {
+      observedButtons.add(button);
+      observeDeleteButton(button);
+      adjustDeletionText(button);
+    }
+  });
+})();
+
 // ─── エージェント画面のタイトル調整 ───
 (function() {
   // ----- デスクトップヘッダー (data-element-id="character-list-header" 内) -----
